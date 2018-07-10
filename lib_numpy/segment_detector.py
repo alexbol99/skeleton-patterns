@@ -14,6 +14,7 @@
         - filter input data and return rows that are not classified
     TODO: split segment if there is a gap between points more than given parameter
 '''
+import numpy as np
 import math
 from sklearn.cluster import Birch
 
@@ -61,25 +62,38 @@ def extract_segments(data):
             l = label
 
         s = point_to_coord(row[0],row[1],row[2],row[3])
-        group.append(row + [s])
+        group.append(list(row) + [s])
+        # group.append(np.concatenate((row, np.array[s])))
 
     return segments
 
 def detect_segments(data):
-    rho = [normal_to_angle(row[2], row[3]) for row in data]
-    dist = [point_to_dist(row[0],row[1],row[2],row[3]) for row in data]
+    # rho = [normal_to_angle(row[2], row[3]) for row in data]
+    rho = np.arctan2(data[:,3],data[:,2])
+    rho[rho < 0] += 2*math.pi
+    #dist = [point_to_dist(row[0],row[1],row[2],row[3]) for row in data]
+    dist = np.fabs(data[:,0]*data[:,2] + data[:,1]*data[:,3])
 
-    X = [(r,d) for (r,d) in zip(rho,dist)]
+    # X = [(r,d) for (r,d) in zip(rho,dist)]
+    X = list(zip(rho,dist))
 
     brc = Birch(branching_factor=50,n_clusters=None, threshold=0.5)
     rrr = brc.fit(X)
     labels = brc.predict(X)
 
-    sorted_data = [row + [label] for (row,label) in zip(data,labels)]
-    sorted_data = sorted(sorted_data, key=lambda row: row[4])
+    # sorted_data = [row + [label] for (row,label) in zip(data,labels)]
+    # sorted_data = np.concatenate((data,np.array([labels],dtype=float).T),axis=1)
+    sorted_data = np.zeros((data.shape[0],data.shape[1]+1))
+    sorted_data[:,0:4] = data
+    sorted_data[:,4:5] = np.array([labels],dtype=float).T
+
+    # sorted_data = sorted(sorted_data, key=lambda row: row[4])
+    sorted_data = sorted_data[sorted_data[:,4].argsort()]
 
     segments = extract_segments(sorted_data)
 
     filtered_data = list(filter(lambda row: row[4] not in segments, sorted_data))
 
     return segments, filtered_data
+
+

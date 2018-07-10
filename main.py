@@ -1,24 +1,29 @@
-import matplotlib.pyplot as plt
-
-from input import read_data
-from segment_detector import detect_segments
+# import matplotlib.pyplot as plt
+# import time
+from lib.input import read_data
+from lib.segment_detector import detect_segments
+from lib.display import plot
 
 data = read_data("medial.txt")
 segments, filtered_data = detect_segments(data)
 print(segments)
-
-xx = [ row[0] for row in filtered_data ]
-yy = [ row[1] for row in filtered_data ]
-
-plt.figure(figsize=(4,8))
-plt.plot(xx,yy,".",color="red")
-for seg in segments.values():
-    plt.plot((seg[0],seg[2]),(seg[1],seg[3]),"-r",color="green")
-plt.axis("scaled")
-plt.show()
+plot(data, segments)
 
 
 
-
-
+# from lib_numpy.input import read_data
+# from lib_numpy.segment_detector import detect_segments
+# from lib_numpy.display import plot
+#
+#
+# data = read_data("medial.txt")
+#
+# start = time.time()
+# segments, filtered_data = detect_segments(data)
+# end = time.time()
+#
+# print("Version numpy takes {} msec".format(end-start))
+#
+# print(segments)
+# plot(data, segments)
 
