@@ -1,14 +1,17 @@
 # import matplotlib.pyplot as plt
 # import time
-from lib.input import read_data
-from lib.segment_detector import detect_segments
-from lib.display import plot
+from input import read_data
+from segment_detector import detect_segments
+from arc_detector import detect_arcs
+from display import plot
 
-data = read_data("medial.txt")
+data = read_data("medial.csv")
 segments, filtered_data = detect_segments(data)
 print(segments)
-plot(data, segments)
+# plot(data, segments)
 
+arcs, filtered_data = detect_arcs(filtered_data)
+plot(data, segments, arcs)
 
 
 # from lib_numpy.input import read_data
@@ -16,7 +19,7 @@ plot(data, segments)
 # from lib_numpy.display import plot
 #
 #
-# data = read_data("medial.txt")
+# data = read_data("medial.csv")
 #
 # start = time.time()
 # segments, filtered_data = detect_segments(data)
