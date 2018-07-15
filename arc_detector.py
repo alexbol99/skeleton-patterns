@@ -13,8 +13,9 @@
         5. Create arc for each group more than 10 members using group centroid stored in BRC object
         6. Return circles as dictionary with key = group label
 '''
-
-# import matplotlib.pyplot as plt
+import matplotlib as mpl
+mpl.use('TkAgg')
+import matplotlib.pyplot as plt
 import numpy as np
 import math
 from sklearn.cluster import Birch
@@ -46,14 +47,27 @@ def line_to_line_intersect(row1, row2):
 def length(x1,y1,x2,y2):
     return math.sqrt((x2-x1)**2 + (y2-y1)**2)
 
-def find_candidate_circles(data, p1, p2):
+# def find_candidate_circles(data, p1, p2):
+#     Z = []
+#     for i,j in zip(p1,p2):
+#         ip = line_to_line_intersect(data[i], data[j])
+#         if (len(ip) > 0):
+#             r = length(ip[0],ip[1],data[i][0],data[i][1])
+#             Z.append([ip[0],ip[1],r])
+#     return Z
+
+
+def find_candidate_circles(data1, data2):
     Z = []
-    for i,j in zip(p1,p2):
-        ip = line_to_line_intersect(data[i], data[j])
-        if (len(ip) > 0):
-            r = length(ip[0],ip[1],data[i][0],data[i][1])
+    for row1,row2 in zip(data1, data2):
+        ip = line_to_line_intersect(row1, row2)
+        if len(ip) > 0:
+            r = length(ip[0],ip[1],row1[0],row1[1])
             Z.append([ip[0],ip[1],r])
+        else:
+            Z.append(ip[0], ip[1],math.inf)
     return Z
+
 
 def point_to_slope(x,y,pcx,pcy):
     slope = math.atan2(y-pcy, x-pcx)
@@ -61,10 +75,21 @@ def point_to_slope(x,y,pcx,pcy):
         slope += 2*math.pi
     return slope
 
-def define_angles(angles):
-    start_angle = min(angles)
-    end_angle = max(angles)
+
+def define_angles(slopes):
+    # start_angle = min(angles)
+    # end_angle = max(angles)
+    n = len(slopes)
+    angles = []
+    for i in range(0,n):
+        angle = slopes[(i+1)%n] - slopes[i]
+        angles.append(angle)
+
+    max_index = angles.index(max(angles))
+    start_angle = slopes[(max_index+1)%n]
+    end_angle = slopes[max_index]
     return math.degrees(start_angle),math.degrees(end_angle)
+
 
 def extract_arcs(data,brc):
     l = None
@@ -88,8 +113,15 @@ def extract_arcs(data,brc):
         radius = subcluster_center[2]
         slope = point_to_slope(row[0],row[1],centerX, centerY)
         group.append(row + [centerX,centerY,radius,slope])
+    else:
+        if len(group) > 10:      # process last group
+            # Sort by slope
+            group = sorted(group, key=lambda r: r[8])
+            start_angle, end_angle = define_angles([r[8] for r in group])
+            arcs[l] = [(group[0][5], group[0][6]), group[0][7], start_angle, end_angle]
 
     return arcs
+
 
 def detect_arcs(data):
     # generate a sparse graph using the k nearest neighbors of each point
@@ -102,32 +134,38 @@ def detect_arcs(data):
     T = MST.tocoo()
 
     # Filter edges where length > 10
-    R = np.where(T.data < 10,T.row,-1)
-    p1 = R[R>=0]
-    C = np.where(T.data < 10,T.col,-1)
-    p2 = C[C>=0]
+    # R = np.where(T.data < 10,T.row,-1)
+    # p1 = R[R>=0]
+    # C = np.where(T.data < 10,T.col,-1)
+    # p2 = C[C>=0]
+
+    np_data = np.array(data)
+    np_data_row = np_data[T.row]
+    np_data_col = np_data[T.col]
 
     # Find candidate circles [(pcx,pcy,r)]
-    Z = find_candidate_circles(data, p1, p2)
+    # Z = find_candidate_circles(data, p1, p2)
+    Z = find_candidate_circles(np_data_row, np_data_col)
 
     # Classify candidate circles
     brc = Birch(branching_factor=50,n_clusters=None, threshold=0.5)
     res = brc.fit(Z)
     labels = brc.predict(Z)
 
-    sorted_data = [row + [label] for (row,label) in zip(data,labels)]
+    sorted_data = [list(row) + [label] for (row,label) in zip(np_data_row,labels)]
     sorted_data = sorted(sorted_data, key=lambda row: row[4])
 
+    # sorted_data = list(filter(lambda row: row[4] == 43, sorted_data))
     arcs = extract_arcs(sorted_data, brc)
 
     filtered_data = list(filter(lambda row: row[4] not in arcs, sorted_data))
 
 # Plot original data
-    # plt.figure(figsize=(4,8))
-    #
-    # xx = [ row[0] for row in data ]
-    # yy = [ row[1] for row in data ]
-    # plt.plot(xx,yy,".",color="red")
+#     plt.figure(figsize=(4,8))
+#     plot_data = list(filter(lambda row: row[4] == 43, sorted_data))
+#     xx = [ row[0] for row in plot_data ]
+#     yy = [ row[1] for row in plot_data ]
+#     plt.plot(xx,yy,".",color="red")
 
 # Plot edges of minimal spanning tree
 #     X = np.array(data)
@@ -154,7 +192,7 @@ def detect_arcs(data):
 #         patch = Arc(center, width, height, startAngle, endAngle, edgecolor='green')
 #         ax.add_patch(patch)
 #
-#     plt.axis("scaled")
-#     plt.show()
+    # plt.axis("scaled")
+    # plt.show()
 
     return arcs, filtered_data
