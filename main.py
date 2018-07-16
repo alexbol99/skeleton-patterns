@@ -5,7 +5,15 @@ from segment_detector import detect_segments
 from arc_detector import detect_arcs
 from display import plot
 
-data = read_data("medial.csv")
+import tkinter as tk
+from tkinter import filedialog
+
+root = tk.Tk()
+root.withdraw()
+
+file_path = filedialog.askopenfilename()
+
+data = read_data(file_path)
 segments, filtered_data = detect_segments(data)
 print(segments)
 # plot(data, segments)
@@ -19,7 +27,7 @@ plot(data, segments, arcs)
 # from lib_numpy.display import plot
 #
 #
-# data = read_data("medial.csv")
+# data = read_data("medial.txt")
 #
 # start = time.time()
 # segments, filtered_data = detect_segments(data)

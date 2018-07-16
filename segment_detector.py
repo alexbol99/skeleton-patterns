@@ -63,6 +63,11 @@ def extract_segments(data):
 
         s = point_to_coord(row[0],row[1],row[2],row[3])
         group.append(row + [s])
+    else:
+        if len(group) > 2:
+            group = sorted(group, key=lambda r: r[5])
+            segments[l] = \
+                (group[0][0], group[0][1], group[-1][0], group[-1][1])
 
     return segments
 

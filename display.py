@@ -1,5 +1,5 @@
-import matplotlib as mpl
-mpl.use('TkAgg')
+# import matplotlib as mpl
+# mpl.use('TkAgg')
 import matplotlib.pyplot as plt
 from matplotlib.patches import Arc
 
@@ -26,6 +26,10 @@ def plot(data, segments={}, arcs = {}):
         ax = plt.gca()
         patch = Arc(center, width, height, 0, startAngle, endAngle, edgecolor='green')
         ax.add_patch(patch)
+
+    # import math
+    # patch = Arc((44750,40000), 200, 200, 0, 57, 37, edgecolor='orange')
+    # ax.add_patch(patch)
 
     plt.axis("scaled")
     plt.show()
