@@ -83,6 +83,8 @@ def define_angles(slopes):
     angles = []
     for i in range(0,n):
         angle = slopes[(i+1)%n] - slopes[i]
+        if angle < 0:
+            angle += 2*math.pi
         angles.append(angle)
 
     max_index = angles.index(max(angles))
