@@ -59,13 +59,13 @@ def length(x1,y1,x2,y2):
 
 def find_candidate_circles(data1, data2):
     Z = []
-    for row1,row2 in zip(data1, data2):
+    for row1, row2 in zip(data1, data2):
         ip = line_to_line_intersect(row1, row2)
         if len(ip) > 0:
-            r = length(ip[0],ip[1],row1[0],row1[1])
-            Z.append([ip[0],ip[1],r])
+            r = length(ip[0], ip[1], row1[0], row1[1])
+            Z.append([ip[0], ip[1], r])
         else:
-            Z.append(ip[0], ip[1],math.inf)
+            Z.append([0, 0, -1])
     return Z
 
 
@@ -100,7 +100,7 @@ def extract_arcs(data,brc):
     for row in data:
         label = row[4]
         if label != l:
-            if len(group) > 10:
+            if len(group) > 10 and group[0][7] > 0:
                 # Sort by slope
                 group = sorted(group, key=lambda r: r[8])
                 start_angle,end_angle = define_angles([r[8] for r in group])
@@ -116,7 +116,7 @@ def extract_arcs(data,brc):
         slope = point_to_slope(row[0],row[1],centerX, centerY)
         group.append(row + [centerX,centerY,radius,slope])
     else:
-        if len(group) > 10:      # process last group
+        if len(group) > 10 and group[0][7] > 0:      # process last group
             # Sort by slope
             group = sorted(group, key=lambda r: r[8])
             start_angle, end_angle = define_angles([r[8] for r in group])
