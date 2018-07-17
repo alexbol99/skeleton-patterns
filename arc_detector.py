@@ -23,12 +23,18 @@ from sklearn.neighbors import kneighbors_graph
 from scipy.sparse.csgraph import minimum_spanning_tree
 # from matplotlib.patches import Arc
 
+'''
+    Transform (point, normal) into standard form Ax + By + C = 0
+'''
 def line_to_standard(px,py,nx,ny):
     A = nx
     B = ny
     C = nx*px + ny*py
     return A,B,C
 
+'''
+    Return intersection point between two lines
+'''
 def line_to_line_intersect(row1, row2):
     A1,B1,C1 = line_to_standard(row1[0],row1[1],row1[3],-row1[2])
     A2,B2,C2 = line_to_standard(row2[0],row2[1],row2[3],-row2[2])
@@ -44,19 +50,15 @@ def line_to_line_intersect(row1, row2):
 
     return ip
 
-def length(x1,y1,x2,y2):
+'''
+    Distance between two points (x1,y1) and (x2,y2)
+'''
+def length(x1, y1, x2, y2):
     return math.sqrt((x2-x1)**2 + (y2-y1)**2)
 
-# def find_candidate_circles(data, p1, p2):
-#     Z = []
-#     for i,j in zip(p1,p2):
-#         ip = line_to_line_intersect(data[i], data[j])
-#         if (len(ip) > 0):
-#             r = length(ip[0],ip[1],data[i][0],data[i][1])
-#             Z.append([ip[0],ip[1],r])
-#     return Z
-
-
+'''
+    Find candidate circle (center, radius) between two lines 
+'''
 def find_candidate_circles(data1, data2):
     Z = []
     for row1, row2 in zip(data1, data2):
@@ -68,7 +70,9 @@ def find_candidate_circles(data1, data2):
             Z.append([0, 0, -1])
     return Z
 
-
+'''
+    Return angle between vector [center, point] and axe x (in radians)
+'''
 def point_to_slope(x,y,pcx,pcy):
     slope = math.atan2(y-pcy, x-pcx)
     if slope < 0:
@@ -76,9 +80,10 @@ def point_to_slope(x,y,pcx,pcy):
     return slope
 
 
+'''
+    Return start and end angle of the group of points from same claster
+'''
 def define_angles(slopes):
-    # start_angle = min(angles)
-    # end_angle = max(angles)
     n = len(slopes)
     angles = []
     for i in range(0,n):
@@ -93,6 +98,9 @@ def define_angles(slopes):
     return math.degrees(start_angle),math.degrees(end_angle)
 
 
+'''
+    Transform cluster to arcs that represent this cluster
+'''
 def extract_arcs(data,brc):
     l = None
     group = []
@@ -125,6 +133,9 @@ def extract_arcs(data,brc):
     return arcs
 
 
+'''
+    Exported interface
+'''
 def detect_arcs(data):
     # generate a sparse graph using the k nearest neighbors of each point
     G = kneighbors_graph(data, n_neighbors=10, mode='distance')
@@ -146,7 +157,6 @@ def detect_arcs(data):
     np_data_col = np_data[T.col]
 
     # Find candidate circles [(pcx,pcy,r)]
-    # Z = find_candidate_circles(data, p1, p2)
     Z = find_candidate_circles(np_data_row, np_data_col)
 
     # Classify candidate circles
