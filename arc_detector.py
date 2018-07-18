@@ -22,6 +22,7 @@ from sklearn.cluster import Birch
 from sklearn.neighbors import kneighbors_graph
 from scipy.sparse.csgraph import minimum_spanning_tree
 # from matplotlib.patches import Arc
+from parameters import *
 
 '''
     Transform (point, normal) into standard form Ax + By + C = 0
@@ -98,6 +99,50 @@ def define_angles(slopes):
     return math.degrees(start_angle),math.degrees(end_angle)
 
 
+def group_to_arcs(group):
+    slopes = [row[8] for row in group]
+    radius = group[0][7]
+    n = len(slopes)
+    angles = []
+    for i in range(0,n):
+        angle = slopes[(i+1)%n] - slopes[i]
+        if angle < 0:
+            angle += 2*math.pi
+        angles.append(angle)
+
+    max_index = angles.index(max(angles))
+    # start_angle = slopes[(max_index+1)%n]
+    # end_angle = slopes[max_index]
+
+    # Re-order group to start from (max_index+1)%n
+    group = [group[(max_index+1+i)%n] for i in range(0,n)]
+    slopes = [row[8] for row in group]
+
+    # Recalculate angles
+    angles = []
+    for i in range(0, n):
+        angle = slopes[(i + 1) % n] - slopes[i]
+        if angle < 0:
+            angle += 2 * math.pi
+        angles.append(angle)
+
+    start_angle = slopes[0]
+    end_angle = slopes[-1]
+
+    arcs = []
+    arc = [(group[0][5],group[0][6]),group[0][7],start_angle,end_angle]
+    for i in range(0,n):
+        if math.fabs(angles[i])*radius > ARC_DETECTOR_MAX_GAP_IN_GROUP:   # split current arc
+            arc[3] = slopes[i]                   # set end_angle
+            arcs.append(arc)                     # add arc after split to the list
+            # start new arc
+            arc = [(group[0][5], group[0][6]), group[0][7], slopes[(i+1)%n], end_angle]
+
+    if arc[2] > start_angle:
+        arcs.append(arc)                             # add last arc to the list
+    return arcs
+
+
 '''
     Transform cluster to arcs that represent this cluster
 '''
@@ -108,11 +153,12 @@ def extract_arcs(data,brc):
     for row in data:
         label = row[4]
         if label != l:
-            if len(group) > 10 and group[0][7] > 0:
+            if len(group) > ARC_DETECTOR_MIN_IN_GROUP and group[0][7] > 0:
                 # Sort by slope
                 group = sorted(group, key=lambda r: r[8])
-                start_angle,end_angle = define_angles([r[8] for r in group])
-                arcs[l] = [(group[0][5],group[0][6]),group[0][7],start_angle,end_angle]
+                # start_angle,end_angle = define_angles([r[8] for r in group])
+                # arcs[l] = [(group[0][5],group[0][6]),group[0][7],start_angle,end_angle]
+                arcs[l] = group_to_arcs(group)
 
             group = []
             l = label
@@ -124,11 +170,12 @@ def extract_arcs(data,brc):
         slope = point_to_slope(row[0],row[1],centerX, centerY)
         group.append(row + [centerX,centerY,radius,slope])
     else:
-        if len(group) > 10 and group[0][7] > 0:      # process last group
+        if len(group) > ARC_DETECTOR_MIN_IN_GROUP and group[0][7] > 0:      # process last group
             # Sort by slope
             group = sorted(group, key=lambda r: r[8])
-            start_angle, end_angle = define_angles([r[8] for r in group])
-            arcs[l] = [(group[0][5], group[0][6]), group[0][7], start_angle, end_angle]
+            # start_angle, end_angle = define_angles([r[8] for r in group])
+            # arcs[l] = [(group[0][5], group[0][6]), group[0][7], start_angle, end_angle]
+            arcs[l] = group_to_arcs(group)
 
     return arcs
 
@@ -160,7 +207,7 @@ def detect_arcs(data):
     Z = find_candidate_circles(np_data_row, np_data_col)
 
     # Classify candidate circles
-    brc = Birch(branching_factor=50,n_clusters=None, threshold=0.5)
+    brc = Birch(branching_factor=50,n_clusters=None, threshold=ARC_DETECTOR_BIRCH_THRESHOLD)
     res = brc.fit(Z)
     labels = brc.predict(Z)
 
@@ -171,6 +218,10 @@ def detect_arcs(data):
     arcs = extract_arcs(sorted_data, brc)
 
     filtered_data = list(filter(lambda row: row[4] not in arcs, sorted_data))
+
+    output_arcs = []
+    for list_of_arcs in arcs.values():
+        [output_arcs.append(arc) for arc in list_of_arcs]
 
 # Plot original data
 #     plt.figure(figsize=(4,8))
@@ -207,4 +258,4 @@ def detect_arcs(data):
     # plt.axis("scaled")
     # plt.show()
 
-    return arcs, filtered_data
+    return output_arcs, filtered_data

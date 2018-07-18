@@ -13,6 +13,7 @@ file_path = filedialog.askopenfilename()
 
 data = read_data(file_path)
 segments, filtered_data = detect_segments(data)
+# plot(filtered_data, segments)
 
 arcs, filtered_data = detect_arcs(filtered_data)
 plot(data, segments, arcs)
