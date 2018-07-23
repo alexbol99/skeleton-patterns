@@ -80,52 +80,36 @@ def point_to_slope(x,y,pcx,pcy):
         slope += 2*math.pi
     return slope
 
-
-'''
-    Return start and end angle of the group of points from same claster
-'''
-def define_angles(slopes):
+def slopes_to_angles(slopes):
+    angles = []
     n = len(slopes)
-    angles = []
-    for i in range(0,n):
-        angle = slopes[(i+1)%n] - slopes[i]
-        if angle < 0:
-            angle += 2*math.pi
-        angles.append(angle)
-
-    max_index = angles.index(max(angles))
-    start_angle = slopes[(max_index+1)%n]
-    end_angle = slopes[max_index]
-    return math.degrees(start_angle),math.degrees(end_angle)
-
-
-def group_to_arcs(group):
-    slopes = [row[8] for row in group]
-    radius = group[0][7]
-    n = len(slopes)
-    angles = []
-    for i in range(0,n):
-        angle = slopes[(i+1)%n] - slopes[i]
-        if angle < 0:
-            angle += 2*math.pi
-        angles.append(angle)
-
-    max_index = angles.index(max(angles))
-    # start_angle = slopes[(max_index+1)%n]
-    # end_angle = slopes[max_index]
-
-    # Re-order group to start from (max_index+1)%n
-    group = [group[(max_index+1+i)%n] for i in range(0,n)]
-    slopes = [row[8] for row in group]
-
-    # Recalculate angles
-    angles = []
     for i in range(0, n):
         angle = slopes[(i + 1) % n] - slopes[i]
         if angle < 0:
             angle += 2 * math.pi
         angles.append(angle)
+    return angles
 
+'''
+    Create arcs from cluster of points belong to same group
+'''
+def group_to_arcs(group):
+    slopes = [row[8] for row in group]
+    radius = group[0][7]
+    n = len(slopes)
+
+    # Calculate angles (slope_next - slope)
+    angles = slopes_to_angles(slopes)
+    max_index = angles.index(max(angles))
+
+    # Re-order group to start from (max_index+1)%n
+    group = [group[(max_index+1+i)%n] for i in range(0,n)]
+    slopes = [row[8] for row in group]
+
+    # Recalculate angles after reorder
+    angles = slopes_to_angles(slopes)
+
+    # Create arcs, split arc when gap is bigger than parameter
     start_angle = slopes[0]
     end_angle = slopes[-1]
 
@@ -140,11 +124,12 @@ def group_to_arcs(group):
 
     if arc[2] > start_angle:
         arcs.append(arc)                             # add last arc to the list
+
     return arcs
 
 
 '''
-    Transform cluster to arcs that represent this cluster
+    Extract arcs from each cluster and add them to arcs dictionary
 '''
 def extract_arcs(data,brc):
     l = None
@@ -156,8 +141,7 @@ def extract_arcs(data,brc):
             if len(group) > ARC_DETECTOR_MIN_IN_GROUP and group[0][7] > 0:
                 # Sort by slope
                 group = sorted(group, key=lambda r: r[8])
-                # start_angle,end_angle = define_angles([r[8] for r in group])
-                # arcs[l] = [(group[0][5],group[0][6]),group[0][7],start_angle,end_angle]
+                # Create list of arcs
                 arcs[l] = group_to_arcs(group)
 
             group = []
@@ -173,8 +157,7 @@ def extract_arcs(data,brc):
         if len(group) > ARC_DETECTOR_MIN_IN_GROUP and group[0][7] > 0:      # process last group
             # Sort by slope
             group = sorted(group, key=lambda r: r[8])
-            # start_angle, end_angle = define_angles([r[8] for r in group])
-            # arcs[l] = [(group[0][5], group[0][6]), group[0][7], start_angle, end_angle]
+            # Create list of arcs
             arcs[l] = group_to_arcs(group)
 
     return arcs
